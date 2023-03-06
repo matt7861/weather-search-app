@@ -1,32 +1,78 @@
 import { useState } from "react";
-import Card from "./components/Card";
-import Forecast from "./components/Forecast";
-// import reactLogo from "./assets/react.svg";
+import Block from "./components/Block";
 import "./App.css";
 
 function App() {
   const [search, setSearch] = useState("");
+  const [movieData, setMovieData] = useState([]);
+  const [displayError, setDisplayError] = useState(false);
 
-  // function updateSearch() {
-  //   setSearch()
-  // }
+  function getWeatherData(e) {
+    e.preventDefault();
 
-  useState(() => {
-    async function requestWeatherData() {
-      const response = await fetch(
-        "https://api.openweathermap.org/data/2.5/forecast?lat=44.34&lon=10.99&cnt=3&appid=b780b9f72eb44e0e6e4d14fb21091fed"
+    fetch(
+      `http://api.weatherapi.com/v1/forecast.json?key=88392d6f023c4084a0075915230603&q=${search.replace(
+        / /g,
+        "%20"
+      )}&days=5&aqi=no&alerts=no`
+    )
+      .then((res) => res.json())
+      .then((data) => updateMovieData(data))
+      .catch((error) => {
+        console.error(error);
+        setDisplayError(true);
+      });
+  }
+
+  function updateMovieData(data) {
+    if (data.error) {
+      setDisplayError(true);
+      console.error(data.error);
+    } else {
+      setDisplayError(false);
+      setMovieData(
+        data.forecast.forecastday.map((dayData) => {
+          return {
+            epoch: dayData.date_epoch,
+            minTemp: dayData.day.mintemp_c,
+            maxTemp: dayData.day.maxtemp_c,
+            condition: dayData.day.condition.text,
+            icon: dayData.day.condition.icon,
+          };
+        })
       );
-      const data = await response.json();
-      console.log(data);
     }
-    requestWeatherData();
-  }, []);
+  }
+
+  // console.log(movieData);
 
   return (
-    <div className="App">
-      <h1>hello</h1>
-      <Card />
-      <Forecast />
+    <div>
+      <form onSubmit={getWeatherData}>
+        <label>
+          Search City:
+          <input
+            name="city"
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
+        <button type="submit">Search</button>
+      </form>
+      <div>
+        {displayError ? (
+          <p>Please check your search and try again.</p>
+        ) : (
+          <>
+            {movieData.length > 0
+              ? movieData.map((movData, index) => (
+                  <Block key={index} {...movData} />
+                ))
+              : ""}
+          </>
+        )}
+      </div>
     </div>
   );
 }
